@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Register = () => {
   const [ formData, setFormData ] = useState({});
   const [ showPassword, setShowPassword ] = useState(false);
+  const [ error, setError ] = useState(null);
+  const [ loading, setLoading ] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {  // e represent the event that is being passed to the listener
     setFormData (
@@ -12,6 +15,32 @@ const Register = () => {
         [e.target.id]: e.target.value,   //whatever is changing, set that one equal to it's value
       }
     );
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if(data.success === false) {
+        setLoading(false);
+        setError(data.message);
+        return;
+      }
+      setLoading(false);
+      setError(null);
+      navigate('/login');
+    } catch (error) {
+      setLoading(false);
+      setError(error.message);
+    }    
   };
 
   const togglePasswordVisibility = (e) => {
@@ -22,7 +51,7 @@ const Register = () => {
   return (
     <div className='text-center'>
       <h1 className='text-3xl text-center font-semibold my-7'>Create a New Account</h1>
-      <form className="flex flex-col gap-4 p-3 max-w-lg mx-auto">
+      <form onSubmit={ handleSubmit } className="flex flex-col gap-4 p-3 max-w-lg mx-auto">
         <input type="text" placeholder="username" className="border p-3 rounded-lg" id="username" onChange={ handleChange} />
         <div className='relative'>
           <input type={showPassword? 'text' : 'password'} placeholder='password' className='w-full px-4 py-3 text-base border-gray-300 rounded outline-none focus:ring-blue-500 focus:border-blue-500 focus:ring-1' id='password' onChange={ handleChange }/>
@@ -67,12 +96,13 @@ const Register = () => {
           </button>
         </div>              
         <input type="text" placeholder="email" className="border p-3 rounded-lg" id="email" onChange={ handleChange} />
-        <button className="bg-slate-600 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">Sign Up</button>
+        <button disabled={loading} className="bg-slate-600 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">{loading ? 'Loading...' : 'Sign Up'}</button>
       </form>
       <div className='flex gap-2 items-center justify-center'>
         <p>Have an account?</p>
         <Link to={'/login'}><span className='text-blue-700'>Sign In</span></Link>
       </div>
+      { error && <p className= 'text-red-500 mt-5'>{ error }</p> }      
     </div>
   )
 }
