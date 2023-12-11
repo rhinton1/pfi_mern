@@ -1,17 +1,52 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+
 
 const Login = () => {
   const [ formData, setFormData ] = useState({});
-  const [ showPassword, setShowPassword ] = useState(false);
+  const [ error, setError ] = useState(null);
+  const [ loading, setLoading ] = useState(false);
+  const [ showPassword, setShowPassword ] = useState(false)
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {  // e represent the event that is being passed to the listener
-    setFormData (
+  const handleChange = (e) => {    // e represent the event that is being passed to the listener
+    setFormData(
       {
-        ...formData,     //the three dots is the spread operator - it allows for us to keep the previous formData together
-        [e.target.id]: e.target.value,   //whatever is changing, set that one equal to it's value
+        ...formData, //the three dots is the spread operator - it allows for us to keep the previous formData together 
+        [e.target.id]: e.target.value,  //whatever is changing, set that one equal to it's value
       }
-    )
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();    // to prevent from refreshing the page when clicking the Sign Up (submit) button .... common practice in REACT
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', 
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      console.log(data);
+
+      if(data.success === false) {
+        setError(data.message);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      setError(null);
+      navigate('/')
+    } catch (error) {
+      setLoading(false);
+      setError(error.message);
+    }      
   };
 
   const togglePasswordVisibility = (e) => {
@@ -22,8 +57,8 @@ const Login = () => {
   return (
     <div className='text-center'>
       <h1 className='text-3xl text-center font-semibold my-7'>Login</h1>
-      <form className="flex flex-col gap-4 p-3 max-w-lg mx-auto">
-        <input type="text" placeholder="email" className="border p-3 rounded-lg" id="email" />
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-3 max-w-lg mx-auto">
+        <input type="email" placeholder="email" className="border p-3 rounded-lg" id="email" onChange={handleChange}></input>
         <div className='relative'>
           <input type={showPassword? 'text' : 'password'} placeholder='password' className='w-full px-4 py-3 text-base border-gray-300 rounded outline-none focus:ring-blue-500 focus:border-blue-500 focus:ring-1' id='password' onChange={ handleChange }/>
           <button onClick={togglePasswordVisibility} className='absolute inset-y-0 px-4 flex items-center right-0'>
@@ -66,12 +101,13 @@ const Login = () => {
             }
           </button>
         </div>
-        <button className="bg-slate-600 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">Sign In</button>
+        <button disabled={loading} className="bg-slate-600 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">{loading ? 'Loading...' : 'Login'}</button>
       </form>
       <div className='flex gap-2 items-center justify-center'>
         <p>Dont have an account?</p>
         <Link to={'/register'}><span className='text-blue-700'>Register</span></Link>
       </div>
+      {error && <p className='text-red-500 mt-5'>{error}</p>}
     </div>
   )
 }
